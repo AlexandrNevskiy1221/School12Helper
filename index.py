@@ -84,9 +84,11 @@ def query(msg):
     query = user_state[user]["query"]
     wing = user_state[user]["wing"]
     floor = user_state[user]["floor"]
+    if "_" in floor:
+        floor = floor[0:floor.find('_')]
 
     dtw = {
-            "values": [[data, query, wing, floor]]
+            "values": [[data, query, wing, floor, 0]]
     }
     sheet.values().append(spreadsheetId = SHEET_ID, range = "Sheet", valueInputOption = "RAW", body = dtw).execute()
 
