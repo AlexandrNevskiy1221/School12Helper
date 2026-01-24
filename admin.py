@@ -38,24 +38,21 @@ def list_queries(uid):
     statuses = {'0': "открыта", '1': "закрыта"}
 
     body_lines = []
-    categories_count = {}  # автоматические категории
-    rooms_count = {}       # по кабинетам
+    categories_count = {}
+    rooms_count = {}
 
     for qid, txt, wing, floor, status in data['values']:
         body_lines.append(f"{qid} | {txt} | {wings[wing]} | {floors[floor]} | {statuses[status]}")
         if status == '0':
-            # Определяем категорию машинным обучением
             cat = model.predict(vectorizer.transform([txt]))[0]
             categories_count[cat] = categories_count.get(cat, 0) + 1
 
-            # Ищем кабинеты
             rooms = re.findall(r'\b\d+\b', txt)
             for room in rooms:
                 rooms_count[room] = rooms_count.get(room, 0) + 1
 
     body = "\n".join(body_lines)
 
-    # Формируем статистику
     stats_lines = ["Статистика открытых проблем по категориям:"]
     for cat, c in categories_count.items():
         stats_lines.append(f"{cat}: {c}")
@@ -103,14 +100,20 @@ def close_query(msg):
 
     data = sheet.values().get(
         spreadsheetId=SHEET_ID,
-        range="Sheet!A2:A"
+        range="Sheet!A2:F"
     ).execute().get("values", [])
 
     row = None
+    status = None
     for i, val in enumerate(data, start=2):
         if val[0] == qid:
             row = i
+            status = val[4]
+            uts = int(val[5])
             break
+    if status == '1':
+        bot.send_message(uid, f"Заявка №{qid} уже закрыта.")
+        return
 
     if row is None:
         bot.send_message(uid, "Заявка не найдена.")
@@ -123,7 +126,10 @@ def close_query(msg):
         body={"values": [["1"]]}
     ).execute()
 
-    bot.send_message(uid, f"Заявка #{qid} закрыта.")
+    supBot = telebot.TeleBot(os.getenv("SUPPORT_TOKEN"))
+    supBot.send_message(uts, f"Твоя заявка №{qid} закрыта!")
+
+    bot.send_message(uid, f"Заявка №{qid} закрыта.")
 
 @bot.message_handler(commands=["list"])
 def list(msg):

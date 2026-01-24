@@ -91,7 +91,7 @@ def query(msg):
         floor = floor[0:floor.find('_')]
 
     dtw = {
-            "values": [[data, query, wing, floor, 0]]
+            "values": [[data, query, wing, floor, 0, user]]
     }
     sheet.values().append(spreadsheetId = SHEET_ID, range = "Sheet", valueInputOption = "RAW", body = dtw).execute()
 

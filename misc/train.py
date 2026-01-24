@@ -2,7 +2,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 import pickle
 
-# Пример тренировочных данных
 texts = [
     # Поломки (мебель, двери, шкафы)
     "сломалась парта в 10 кабинете",
@@ -57,15 +56,12 @@ labels = [
     "Другое", "Другое", "Другое", "Другое", "Другое", "Другое"
 ]
 
-# Векторизация текста
 vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(texts)
 
-# Модель Naive Bayes
 model = MultinomialNB()
 model.fit(X, labels)
 
-# Сохраняем модель и векторизатор
 with open("category_model.pkl", "wb") as f:
     pickle.dump((vectorizer, model), f)
 
