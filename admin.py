@@ -101,6 +101,15 @@ def close_query(msg):
 
     bot.send_message(uid, f"Заявка #{qid} закрыта.")
 
+@bot.message_handler(commands=["list"])
+def list(msg):
+    state = admin_state.get(msg.from_user.id)
+    print(state)
+    if state.get("is_admin"):
+        list_queries(msg.from_user.id)
+    else:
+        bot.send_message(msg.from_user.id, "Недостаточно прав! Введи пароль с помощью /login или сообщи о проблеме в @School12SupportBot")
+
 
 @bot.message_handler(content_types=["text"])
 def answ(msg):
