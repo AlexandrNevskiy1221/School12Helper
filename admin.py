@@ -2,9 +2,14 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
 import telebot
+import pickle
+import re
 import telebot.types as types
 import os
 load_dotenv()
+
+with open("misc/categories.pkl", "rb") as f:
+    vectorizer, model = pickle.load(f)
 
 creds = Credentials.from_service_account_file(
     "creds.json",
@@ -20,30 +25,49 @@ bot = telebot.TeleBot(API_TOKEN)
 password = os.getenv("ADMIN_PASSWORD")
 admin_state = {}
 
+
 def list_queries(uid):
-    data = sheet.values().get(spreadsheetId = SHEET_ID, range = "Sheet!A3:E").execute()
-    if data.get('values') == None:
+    data = sheet.values().get(spreadsheetId=SHEET_ID, range="Sheet!A3:E").execute()
+    if not data.get('values'):
         bot.send_message(uid, "Проблем нет!")
-    else:
-        head = "id | описание | крыло | этаж | статус"
-        wings = {
-                "left": "левое",
-                "right": "правое"
-        }
-        floors = {
-                "third": "третий", 
-                "second": "второй", 
-                "first": "первый", 
-                "zero": "мастерские"
-        }
-        statuses = {
-                '0': "открыта",
-                '1': "закрыта"
-        }
-        body = "\n".join(f"{qid} | {txt} | {wings[wing]} | {floors[floor]} | {statuses[status]}" for qid, txt, wing, floor, status in data['values'])
-        foot = "Ты можешь закрыть заявку с помощью /close"
-        text = f"{head}\n{body}\n{foot}"
-        bot.send_message(uid, text)
+        return
+
+    head = "id | описание | крыло | этаж | статус"
+    wings = {"left": "левое", "right": "правое"}
+    floors = {"third": "третий", "second": "второй", "first": "первый", "zero": "мастерские"}
+    statuses = {'0': "открыта", '1': "закрыта"}
+
+    body_lines = []
+    categories_count = {}  # автоматические категории
+    rooms_count = {}       # по кабинетам
+
+    for qid, txt, wing, floor, status in data['values']:
+        body_lines.append(f"{qid} | {txt} | {wings[wing]} | {floors[floor]} | {statuses[status]}")
+        if status == '0':
+            # Определяем категорию машинным обучением
+            cat = model.predict(vectorizer.transform([txt]))[0]
+            categories_count[cat] = categories_count.get(cat, 0) + 1
+
+            # Ищем кабинеты
+            rooms = re.findall(r'\b\d+\b', txt)
+            for room in rooms:
+                rooms_count[room] = rooms_count.get(room, 0) + 1
+
+    body = "\n".join(body_lines)
+
+    # Формируем статистику
+    stats_lines = ["Статистика открытых проблем по категориям:"]
+    for cat, c in categories_count.items():
+        stats_lines.append(f"{cat}: {c}")
+
+    stats_lines.append("\nСтатистика по кабинетам:")
+    for room, c in rooms_count.items():
+        stats_lines.append(f"{room} кабинет: {c}")
+
+    stats_text = "\n".join(stats_lines)
+    foot = "Ты можешь закрыть заявку с помощью /close"
+    text = f"{head}\n{body}\n\n{stats_text}\n\n{foot}"
+    bot.send_message(uid, text)
 
 @bot.message_handler(commands=["start"])
 def send_welcome(msg):
@@ -104,8 +128,7 @@ def close_query(msg):
 @bot.message_handler(commands=["list"])
 def list(msg):
     state = admin_state.get(msg.from_user.id)
-    print(state)
-    if state.get("is_admin"):
+    if state.get("is_admin") != None and state.get('is_admin') != False:
         list_queries(msg.from_user.id)
     else:
         bot.send_message(msg.from_user.id, "Недостаточно прав! Введи пароль с помощью /login или сообщи о проблеме в @School12SupportBot")
