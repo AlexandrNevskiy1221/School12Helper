@@ -1,9 +1,12 @@
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from dotenv import load_dotenv
 import telebot
 import telebot.types as types
+import os
+load_dotenv()
 
-API_TOKEN = "8423047743:AAG5OuLcyVzGrRfaBcF4cTnB2GZsZF3rK6I"
+API_TOKEN = os.getenv("SUPPORT_TOKEN")
 bot = telebot.TeleBot(API_TOKEN)
 
 creds = Credentials.from_service_account_file(

@@ -1,7 +1,10 @@
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from dotenv import load_dotenv
 import telebot
 import telebot.types as types
+import os
+load_dotenv()
 
 creds = Credentials.from_service_account_file(
     "creds.json",
@@ -12,9 +15,9 @@ service = build("sheets", "v4", credentials=creds)
 SHEET_ID = "15-GVlpKITU5Tq_M_8tWo9Ko9H9IWUpaJEUn-J15GiQ0"
 sheet = service.spreadsheets()
 
-API_TOKEN = "8257588406:AAF48drc7L8UT-NIbthHeyo0QrL786yZJgg"
+API_TOKEN = os.getenv("ADMIN_TOKEN")
 bot = telebot.TeleBot(API_TOKEN)
-password = "pugsRuleTheWorld"
+password = os.getenv("ADMIN_PASSWORD")
 admin_state = {}
 
 def list_queries(uid):
